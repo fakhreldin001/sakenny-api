@@ -25,3 +25,26 @@ def get_property(property_id: int, db: Session = Depends(get_db)):
     if not property:
         raise HTTPException(status_code=404, detail="Property not found")
     return property
+
+@router.put("/{property_id}", response_model=PropertyResponse)
+def update_property(property_id: int, property_data: PropertyCreate, db: Session = Depends(get_db)):
+    property = db.query(Property).filter(Property.id == property_id).first()
+    if not property:
+        raise HTTPException(status_code=404, detail="Property not found")
+    
+    for key, value in property_data.model_dump().items():
+        setattr(property, key, value)
+    
+    db.commit()
+    db.refresh(property)
+    return property
+
+@router.delete("/{property_id}")
+def delete_property(property_id: int, db: Session = Depends(get_db)):
+    property = db.query(Property).filter(Property.id == property_id).first()
+    if not property:
+        raise HTTPException(status_code=404, detail="Property not found")
+    
+    db.delete(property)
+    db.commit()
+    return {"message": "Property deleted"}
