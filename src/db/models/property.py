@@ -16,4 +16,4 @@ class Property(Base):
     area = Column(Float)  # in square meters
     property_type = Column(String)  # apartment, villa, studio, etc.
     created_at = Column(DateTime, default=datetime.utcnow)
-    embedding = Column(Vector(1536), nullable=True)
+    embedding = Column(Vector(384), nullable=True)

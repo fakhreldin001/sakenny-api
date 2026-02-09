@@ -1,35 +1,31 @@
 """
 Embedding service for Sakenny
-Generates vector embeddings for property descriptions using OpenAI
+Uses a free local model - no API key needed
 """
 
-import os
-from openai import OpenAI
+from sentence_transformers import SentenceTransformer
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Load the model once when the app starts
+# all-MiniLM-L6-v2 is small, fast, and free
+model = SentenceTransformer("all-MiniLM-L6-v2")
+
 
 def generate_embedding(text: str) -> list[float]:
     """
-    Takes a text description and returns a 1536-dimension vector.
-    This vector captures the semantic meaning of the text,
-    so similar descriptions will have similar vectors.
+    Takes text and returns a 384-dimension vector.
+    Similar texts will have similar vectors.
     """
-    response = client.embeddings.create(
-        model="text-embedding-3-small",
-        input=text
-    )
-    return response.data[0].embedding
+    embedding = model.encode(text)
+    return embedding.tolist()
 
 
 def build_property_text(property_data: dict) -> str:
     """
-    Combines all property fields into a single string for embedding.
-    
-    Why: Instead of embedding just the title, we combine location, price,
-    bedrooms, type, etc. so the vector captures the full picture.
+    Combines property fields into one string for embedding.
+    This way the vector captures the full picture of the property.
     """
     parts = []
-    
+
     if property_data.get("title"):
         parts.append(property_data["title"])
     if property_data.get("location"):
@@ -42,5 +38,5 @@ def build_property_text(property_data: dict) -> str:
         parts.append(f"type {property_data['property_type']}")
     if property_data.get("description"):
         parts.append(property_data["description"])
-    
+
     return ". ".join(parts)
