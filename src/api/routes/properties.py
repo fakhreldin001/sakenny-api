@@ -111,7 +111,7 @@ def semantic_search(query: str, limit: int = 5, db: Session = Depends(get_db)):
             ORDER BY distance
             LIMIT :limit
         """),
-        {"query_embedding": str(query_embedding), "limit": limit}
+        {"query_embedding": "[" + ",".join(str(float(x)) for x in query_embedding) + "]", "limit": limit}
     ).fetchall()
     
     return [
@@ -129,7 +129,6 @@ def semantic_search(query: str, limit: int = 5, db: Session = Depends(get_db)):
         }
         for r in results
     ]
-
 
 @router.get("/{property_id}/similar")
 def find_similar_properties(property_id: int, limit: int = 3, db: Session = Depends(get_db)):
@@ -155,7 +154,7 @@ def find_similar_properties(property_id: int, limit: int = 3, db: Session = Depe
             LIMIT :limit
         """),
         {
-            "query_embedding": str(list(property.embedding)),
+            "query_embedding": "[" + ",".join(str(float(x)) for x in property.embedding) + "]",
             "property_id": property_id,
             "limit": limit
         }
