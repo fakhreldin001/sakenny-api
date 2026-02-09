@@ -5,6 +5,7 @@ from src.db.database import get_db
 from src.db.models.property import Property
 from src.api.schemas import PropertyCreate, PropertyResponse
 from src.ai.embeddings import generate_embedding, build_property_text
+from src.ai.tracking import log_embedding_experiment, log_search_experiment
 
 router = APIRouter(prefix="/properties", tags=["Properties"])
 
@@ -17,6 +18,8 @@ def create_property(property_data: PropertyCreate, db: Session = Depends(get_db)
     # Generate embedding from property details
     text = build_property_text(data)
     data["embedding"] = generate_embedding(text)
+    # Track this embedding in MLflow
+    log_embedding_experiment("all-MiniLM-L6-v2", 384, text, data["embedding"])
     
     new_property = Property(**data)
     db.add(new_property)
@@ -113,7 +116,12 @@ def semantic_search(query: str, limit: int = 5, db: Session = Depends(get_db)):
         """),
         {"query_embedding": "[" + ",".join(str(float(x)) for x in query_embedding) + "]", "limit": limit}
     ).fetchall()
-    
+
+    # Track this search in MLflow
+    top_score = round(1 - results[0].distance, 4) if results else 0
+    # print(f"SEARCH TRACKING: query={query}, results={len(results)}, top_score={top_score}")
+    log_search_experiment(query, len(results), top_score)
+
     return [
         {
             "id": r.id,
@@ -159,7 +167,9 @@ def find_similar_properties(property_id: int, limit: int = 3, db: Session = Depe
             "limit": limit
         }
     ).fetchall()
-
+    # Track this in MLflow
+    top_score = round(1 - results[0].distance, 4) if results else 0
+    log_search_experiment(f"similar to property {property_id}", len(results), top_score)
     return [
         {
             "id": r.id,
